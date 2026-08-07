@@ -1,0 +1,88 @@
+CREATE TABLE IF NOT EXISTS users (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  email VARCHAR(150) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  role ENUM('admin', 'staff') NOT NULL DEFAULT 'staff',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS equipment (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  barcode VARCHAR(64) NOT NULL UNIQUE,
+  name VARCHAR(255) NOT NULL,
+  category VARCHAR(100),
+  compatible_models TEXT,
+  unit VARCHAR(30) NOT NULL DEFAULT 'ชิ้น',
+  stock_qty INT NOT NULL DEFAULT 0,
+  low_stock_threshold INT NOT NULL DEFAULT 5,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS technicians (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS withdrawal_records (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  receipt_no VARCHAR(40) NOT NULL UNIQUE,
+  technician_id INT UNSIGNED NOT NULL,
+  total_items INT NOT NULL DEFAULT 0,
+  voided TINYINT(1) NOT NULL DEFAULT 0,
+  voided_at DATETIME,
+  void_reason VARCHAR(255),
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_withdrawal_technician FOREIGN KEY (technician_id) REFERENCES technicians (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS withdrawal_items (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  withdrawal_record_id INT UNSIGNED NOT NULL,
+  equipment_id INT UNSIGNED,
+  barcode VARCHAR(64) NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  unit VARCHAR(30) NOT NULL,
+  qty INT NOT NULL,
+  CONSTRAINT fk_withdrawal_item_record FOREIGN KEY (withdrawal_record_id) REFERENCES withdrawal_records (id),
+  CONSTRAINT fk_withdrawal_item_equipment FOREIGN KEY (equipment_id) REFERENCES equipment (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS stock_receipts (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  receipt_no VARCHAR(40) NOT NULL UNIQUE,
+  note VARCHAR(255),
+  total_items INT NOT NULL DEFAULT 0,
+  created_by_user_id INT UNSIGNED,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_stock_receipt_user FOREIGN KEY (created_by_user_id) REFERENCES users (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS stock_receipt_items (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  stock_receipt_id INT UNSIGNED NOT NULL,
+  equipment_id INT UNSIGNED,
+  barcode VARCHAR(64) NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  unit VARCHAR(30) NOT NULL,
+  qty INT NOT NULL,
+  CONSTRAINT fk_stock_receipt_item_receipt FOREIGN KEY (stock_receipt_id) REFERENCES stock_receipts (id),
+  CONSTRAINT fk_stock_receipt_item_equipment FOREIGN KEY (equipment_id) REFERENCES equipment (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS equipment_imports (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  file_name VARCHAR(255) NOT NULL,
+  created_count INT NOT NULL DEFAULT 0,
+  updated_count INT NOT NULL DEFAULT 0,
+  error_count INT NOT NULL DEFAULT 0,
+  errors TEXT,
+  created_by_user_id INT UNSIGNED,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_equipment_import_user FOREIGN KEY (created_by_user_id) REFERENCES users (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
